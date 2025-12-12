@@ -21,21 +21,23 @@
                 <h1 id="page-title">Funding Rates</h1>
             </div>
 
-            <div id="stats-container" class="stats-grid">
-                <div class="stat-card">
-                    <span class="stat-label">Avg Yield</span>
-                    <span id="avg-funding" class="stat-value highlight">...</span>
-                </div>
-                <div class="stat-card">
-                    <span class="stat-label">Median Yield</span>
-                    <span id="median-funding" class="stat-value highlight">...</span>
-                </div>
-                <div class="stat-card">
-                    <span class="stat-label">Market Sentiment</span>
-                    <div class="sentiment-values">
-                        <span id="pos-count" class="stat-value positive-text">0</span>
-                        <span class="stat-sep">/</span>
-                        <span id="neg-count" class="stat-value negative-text">0</span>
+            <div id="market-stats-view">
+                <div id="stats-container" class="stats-grid">
+                    <div class="stat-card">
+                        <span class="stat-label">Avg Yield</span>
+                        <span id="avg-funding" class="stat-value highlight">...</span>
+                    </div>
+                    <div class="stat-card">
+                        <span class="stat-label">Median Yield</span>
+                        <span id="median-funding" class="stat-value highlight">...</span>
+                    </div>
+                    <div class="stat-card">
+                        <span class="stat-label">Market Sentiment</span>
+                        <div class="sentiment-values">
+                            <span id="pos-count" class="stat-value positive-text">0</span>
+                            <span class="stat-sep">/</span>
+                            <span id="neg-count" class="stat-value negative-text">0</span>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -51,16 +53,28 @@
                     <span id="tab-10" class="limit-tab" onclick="setLimit(10)">Top 10</span>
                     <span class="tab-divider">|</span>
                     <span id="tab-5" class="limit-tab" onclick="setLimit(5)">Top 5</span>
+                    <span class="tab-divider">|</span>
+                    <span id="tab-history" class="limit-tab" onclick="setLimit('history')">History</span>
                 </div>
 
-                <div class="search-container">
+                <button id="btn-save-snapshot" class="btn-snapshot" onclick="saveSnapshot()">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                        stroke-linecap="round" stroke-linejoin="round" style="margin-right: 6px;">
+                        <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path>
+                        <polyline points="17 21 17 13 7 13 7 21"></polyline>
+                        <polyline points="7 3 7 8 15 8"></polyline>
+                    </svg>
+                    Snapshot
+                </button>
+
+                <div id="search-container-wrapper" class="search-container">
                     <input type="text" id="search-input" placeholder="Search token..."
                         oninput="handleSearch(this.value)">
                 </div>
             </div>
         </header>
 
-        <div class="table-container">
+        <div id="table-view" class="table-container">
             <table>
                 <thead>
                     <tr>
@@ -78,6 +92,43 @@
                     <!-- Rows will be inserted here dynamically -->
                 </tbody>
             </table>
+        </div>
+
+        <div id="snapshot-section" class="snapshot-section" style="display: none;">
+            <div class="history-header-row">
+                <h3>Saved Snapshots</h3>
+                <div class="history-controls">
+                    <input type="file" id="import-file" style="display: none;" onchange="handleImport(this)">
+                    <button class="btn-secondary" onclick="exportSnapshots()">Export JSON</button>
+                    <button class="btn-secondary" onclick="document.getElementById('import-file').click()">Import
+                        JSON</button>
+                    <button class="btn-danger" onclick="clearAllSnapshots()">Clear All</button>
+                </div>
+            </div>
+            <div class="table-container history-table-container">
+                <table id="history-table">
+                    <thead>
+                        <tr>
+                            <th class="sortable" onclick="sortHistory('time')">Date <span
+                                    id="sort-icon-history-time"></span></th>
+                            <th class="sortable" onclick="sortHistory('label')">Label <span
+                                    id="sort-icon-history-label"></span></th>
+                            <th class="sortable" onclick="sortHistory('view')">View <span
+                                    id="sort-icon-history-view"></span></th>
+                            <th class="sortable" onclick="sortHistory('avg')">Avg Yield <span
+                                    id="sort-icon-history-avg"></span></th>
+                            <th class="sortable" onclick="sortHistory('median')">Median Yield <span
+                                    id="sort-icon-history-median"></span></th>
+                            <th class="sortable" onclick="sortHistory('sentiment')">Sentiment <span
+                                    id="sort-icon-history-sentiment"></span></th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody id="snapshot-table-body">
+                        <!-- Snapshots will appear here -->
+                    </tbody>
+                </table>
+            </div>
         </div>
     </div>
     <script src="script.js"></script>

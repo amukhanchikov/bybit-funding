@@ -136,7 +136,7 @@ window.handleSearch = function (query) {
 };
 
 window.setLimit = function (limit) {
-    if (isSearching) {
+    if (isSearching && limit !== 'history') {
         const input = document.getElementById('search-input');
         if (input) input.value = '';
         isSearching = false;
@@ -144,21 +144,44 @@ window.setLimit = function (limit) {
 
     if (dataLimit === limit && !isSearching) return;
     dataLimit = limit;
+    localStorage.setItem('funding_data_limit', limit);
 
     // Update active tab state
-    ['all', 50, 25, 10, 5].forEach(val => {
+    ['all', 50, 25, 10, 5, 'history'].forEach(val => {
         const el = document.getElementById(`tab-${val}`);
         if (el) el.className = val === limit ? 'limit-tab active' : 'limit-tab';
     });
 
-    // Update Title
+    // View Toggling
+    const marketStats = document.getElementById('market-stats-view');
+    const marketTable = document.getElementById('table-view');
+    const searchWrapper = document.getElementById('search-container-wrapper');
+    const snapshotSection = document.getElementById('snapshot-section');
     const title = document.getElementById('page-title');
-    if (title) {
-        if (limit === 'all') title.innerText = 'All Market Funding Rates';
-        else title.innerText = `Top ${limit} Funding Rates`;
-    }
+    const snapshotBtn = document.getElementById('btn-save-snapshot');
 
-    updateTopList();
+    if (limit === 'history') {
+        if (marketStats) marketStats.style.display = 'none';
+        if (marketTable) marketTable.style.display = 'none';
+        if (searchWrapper) searchWrapper.style.visibility = 'hidden'; // Hide but keep layout or use display:none
+        if (snapshotSection) snapshotSection.style.display = 'block';
+        if (snapshotBtn) snapshotBtn.style.display = 'none';
+        if (title) title.innerText = 'Market History';
+    } else {
+        if (marketStats) marketStats.style.display = 'block';
+        if (marketTable) marketTable.style.display = 'block';
+        if (searchWrapper) searchWrapper.style.visibility = 'visible';
+        // Check if search wrapper should be displayed based on css (flex) - default is fine
+        if (snapshotSection) snapshotSection.style.display = 'none';
+        if (snapshotBtn) snapshotBtn.style.display = 'block';
+
+        // Update Title
+        if (title) {
+            if (limit === 'all') title.innerText = 'All Market Funding Rates';
+            else title.innerText = `Top ${limit} Funding Rates`;
+        }
+        updateTopList();
+    }
 };
 
 function updateTopList() {
@@ -278,5 +301,238 @@ function renderTableRows(tickers) {
 // Initial Loading State
 const tbody = document.getElementById('ticker-body');
 if (tbody) tbody.innerHTML = '<tr><td colspan="5" class="loading">Loading Top 50 data...</td></tr>';
+
+// History Sorting State
+let historySortColumn = 'time';
+let historySortDirection = 'desc';
+
+window.sortHistory = function (column) {
+    if (historySortColumn === column) {
+        historySortDirection = historySortDirection === 'desc' ? 'asc' : 'desc';
+    } else {
+        historySortColumn = column;
+        historySortDirection = 'desc';
+    }
+    renderSnapshots();
+};
+
+// Snapshot Logic
+window.saveSnapshot = function () {
+    const avg = document.getElementById('avg-funding')?.innerText || '...';
+    const median = document.getElementById('median-funding')?.innerText || '...';
+    const postCount = document.getElementById('pos-count')?.innerText || '0';
+    const negCount = document.getElementById('neg-count')?.innerText || '0';
+
+    // Simple prompt for label
+    const label = prompt("Enter a label for this snapshot (optional):", "");
+    if (label === null) return; // Cancelled
+
+    const snapshot = {
+        id: Date.now(),
+        timestamp: new Date().toLocaleString(),
+        label: label || 'Snapshot',
+        limit: dataLimit, // Save current limit (e.g., 25, 50, 'all')
+        avg,
+        median,
+        sentiment: `${postCount} / ${negCount}`
+    };
+
+    const snapshots = JSON.parse(localStorage.getItem('market_snapshots') || '[]');
+    snapshots.unshift(snapshot); // Add to beginning
+    localStorage.setItem('market_snapshots', JSON.stringify(snapshots));
+    renderSnapshots();
+};
+
+window.deleteSnapshot = function (id) {
+    if (!confirm('Delete this snapshot?')) return;
+    let snapshots = JSON.parse(localStorage.getItem('market_snapshots') || '[]');
+    snapshots = snapshots.filter(s => s.id !== id);
+    localStorage.setItem('market_snapshots', JSON.stringify(snapshots));
+    renderSnapshots();
+};
+
+window.renderSnapshots = function () {
+    const tbody = document.getElementById('snapshot-table-body');
+    if (!tbody) return;
+
+    let snapshots = JSON.parse(localStorage.getItem('market_snapshots') || '[]');
+
+    if (snapshots.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="7" class="empty-state">No snapshots saved.</td></tr>';
+        return;
+    }
+
+    // Apply Sorting
+    snapshots.sort((a, b) => {
+        let valA, valB;
+        switch (historySortColumn) {
+            case 'time':
+                // Try to parse timestamp, fallback to ID
+                valA = Date.parse(a.timestamp) || a.id;
+                valB = Date.parse(b.timestamp) || b.id;
+                break;
+            case 'label':
+                valA = a.label.toLowerCase();
+                valB = b.label.toLowerCase();
+                break;
+            case 'view':
+                valA = (a.limit || '').toString();
+                valB = (b.limit || '').toString();
+                break;
+            case 'avg':
+                valA = parseFloat(a.avg);
+                valB = parseFloat(b.avg);
+                break;
+            case 'median':
+                valA = parseFloat(a.median);
+                valB = parseFloat(b.median);
+                break;
+            case 'sentiment':
+                // rudimentary sentiment sort (by positive count)
+                valA = parseInt(a.sentiment.split('/')[0]);
+                valB = parseInt(b.sentiment.split('/')[0]);
+                break;
+            default:
+                return 0;
+        }
+
+        if (valA < valB) return historySortDirection === 'asc' ? -1 : 1;
+        if (valA > valB) return historySortDirection === 'asc' ? 1 : -1;
+        return 0;
+    });
+
+    // Update Icons
+    ['time', 'label', 'view', 'avg', 'median', 'sentiment'].forEach(col => {
+        const icon = document.getElementById(`sort-icon-history-${col}`);
+        if (icon) icon.innerText = '';
+    });
+    const currentIcon = document.getElementById(`sort-icon-history-${historySortColumn}`);
+    if (currentIcon) currentIcon.innerText = historySortDirection === 'asc' ? ' ▲' : ' ▼';
+
+
+    tbody.innerHTML = snapshots.map(s => {
+        const limitDisplay = s.limit === 'all' ? 'All' : (s.limit ? `Top ${s.limit}` : '-');
+        return `
+        <tr>
+            <td class="col-date">${s.timestamp}</td>
+            <td class="col-label">${s.label}</td>
+            <td class="col-view">${limitDisplay}</td>
+            <td class="col-stat">${s.avg}</td>
+            <td class="col-stat">${s.median}</td>
+            <td class="col-stat">${s.sentiment}</td>
+            <td class="col-action">
+                <button class="edit-btn-table" onclick="editSnapshotLabel(${s.id})">Edit</button>
+                <button class="delete-btn-table" onclick="deleteSnapshot(${s.id})">Delete</button>
+            </td>
+        </tr>
+    `}).join('');
+};
+
+window.editSnapshotLabel = function (id) {
+    const snapshots = JSON.parse(localStorage.getItem('market_snapshots') || '[]');
+    const snapshotIndex = snapshots.findIndex(s => s.id === id);
+    if (snapshotIndex === -1) return;
+
+    const newLabel = prompt("Enter new label:", snapshots[snapshotIndex].label);
+    if (newLabel === null) return; // Cancelled
+
+    snapshots[snapshotIndex].label = newLabel || 'Snapshot';
+    localStorage.setItem('market_snapshots', JSON.stringify(snapshots));
+    renderSnapshots();
+};
+
+
+window.clearAllSnapshots = function () {
+    if (!confirm('Are you sure you want to delete ALL snapshots? This cannot be undone.')) return;
+    localStorage.setItem('market_snapshots', '[]');
+    renderSnapshots();
+};
+
+window.exportSnapshots = function () {
+    const snapshots = localStorage.getItem('market_snapshots') || '[]';
+    const blob = new Blob([snapshots], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    const date = new Date().toISOString().split('T')[0];
+    a.download = `market_snapshots_${date}.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+};
+
+window.handleImport = function (input) {
+    const file = input.files[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = function (e) {
+        try {
+            const imported = JSON.parse(e.target.result);
+            if (!Array.isArray(imported)) {
+                alert('Invalid file format: Expected an array of snapshots.');
+                return;
+            }
+
+            // Merge logic: Add only if ID doesn't exist OR content changed
+            const current = JSON.parse(localStorage.getItem('market_snapshots') || '[]');
+            let addedCount = 0;
+            const currentIds = new Set(current.map(s => s.id));
+
+            imported.forEach(s => {
+                // Check if EXACT content exists anywhere (deduplication)
+                const isContentDuplicate = current.some(c =>
+                    c.timestamp === s.timestamp &&
+                    c.label === s.label &&
+                    c.avg === s.avg
+                );
+
+                if (isContentDuplicate) {
+                    return; // Skip duplicates
+                }
+
+                // If not content duplicate, check ID collision
+                if (currentIds.has(s.id)) {
+                    // ID collision but content is new (otherwise caught above)
+                    // Generates new unique ID
+                    s.id = Date.now() + Math.floor(Math.random() * 100000);
+                }
+
+                current.push(s);
+                currentIds.add(s.id);
+                addedCount++;
+            });
+
+            // Re-save
+            localStorage.setItem('market_snapshots', JSON.stringify(current));
+            renderSnapshots();
+            alert(`Imported ${addedCount} snapshots successfully.`);
+        } catch (err) {
+            console.error(err);
+            alert('Error parsing JSON file.');
+        }
+        // Reset input
+        input.value = '';
+    };
+    reader.readAsText(file);
+};
+
+// Initial render
+renderSnapshots();
+
+// Restore saved limit
+const savedLimit = localStorage.getItem('funding_data_limit');
+if (savedLimit) {
+    let limitToSet = 25;
+    if (savedLimit === 'all' || savedLimit === 'history') {
+        limitToSet = savedLimit;
+    } else {
+        limitToSet = parseInt(savedLimit, 10);
+    }
+    // Call setLimit to update both state and UI
+    setLimit(limitToSet);
+}
+
 fetchData();
 setInterval(fetchData, 30000);

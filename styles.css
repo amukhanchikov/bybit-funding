@@ -522,17 +522,309 @@ footer {
 }
 
 @media (max-width: 768px) {
+    .container {
+        padding: 20px 10px;
+    }
+
     .stats-grid {
         grid-template-columns: 1fr;
+        gap: 12px;
+    }
+
+    .stat-card {
+        padding: 16px;
     }
 
     .dashboard-header {
         flex-direction: column;
-        align-items: flex-start;
+        align-items: center;
+        gap: 20px;
+        margin-bottom: 20px;
     }
 
-    .search-container {
-        width: 100%;
-        max-width: 100%;
+    h1 {
+        font-size: 2rem;
     }
+
+    .controls-bar {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 16px;
+        padding-bottom: 20px;
+    }
+
+    .limit-tabs {
+        width: 100%;
+        margin-left: 0;
+        justify-content: space-between;
+        padding: 10px;
+        overflow-x: auto;
+        white-space: nowrap;
+    }
+
+    .limit-tab {
+        font-size: 13px;
+        padding: 4px;
+    }
+
+    .controls-bar .search-container {
+        max-width: 100%;
+        order: 3;
+        /* Search at bottom */
+    }
+
+    .btn-snapshot {
+        width: 100%;
+        justify-content: center;
+        padding: 10px;
+        margin-right: 0;
+        order: 2;
+        /* Button below tabs */
+    }
+
+    /* Table Adjustments */
+    th,
+    td {
+        padding: 10px 8px;
+        font-size: 13px;
+    }
+
+    .col-volume {
+        display: none;
+        /* Hide volume to save space */
+    }
+
+    .col-rate .interval-badge {
+        display: block;
+        margin: 2px 0 0 0;
+    }
+}
+
+/* Snapshot Styles */
+.btn-snapshot {
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    color: var(--text-primary);
+    padding: 6px 12px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-family: inherit;
+    font-size: 13px;
+    transition: all 0.2s;
+    white-space: nowrap;
+    margin-right: auto;
+    /* Push search to the right if flex container allows */
+}
+
+.btn-snapshot:hover {
+    background: rgba(255, 255, 255, 0.2);
+    border-color: var(--accent-color);
+}
+
+.snapshot-section {
+    background: var(--card-bg);
+    border-radius: 12px;
+    padding: 20px;
+    margin-bottom: 24px;
+    border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.snapshot-section h3 {
+    margin-top: 0;
+    margin-bottom: 16px;
+    font-size: 1.1rem;
+    color: var(--text-secondary);
+}
+
+.snapshot-list {
+    display: grid;
+    gap: 12px;
+    max-height: 300px;
+    overflow-y: auto;
+}
+
+.snapshot-item {
+    background: rgba(0, 0, 0, 0.2);
+    padding: 12px;
+    border-radius: 8px;
+    border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.snapshot-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 8px;
+}
+
+.snapshot-time {
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+}
+
+.snapshot-label {
+    font-weight: 600;
+    color: var(--accent-color);
+}
+
+.snapshot-stats {
+    display: flex;
+    gap: 16px;
+    font-size: 0.9rem;
+    font-family: 'Roboto Mono', monospace;
+    opacity: 0.9;
+}
+
+.delete-btn {
+    background: none;
+    border: none;
+    color: var(--text-secondary);
+    cursor: pointer;
+    font-size: 1.2rem;
+    padding: 0 4px;
+}
+
+.delete-btn:hover {
+    color: var(--negative);
+}
+
+.empty-state {
+    text-align: center;
+    color: var(--text-secondary);
+    font-style: italic;
+    padding: 20px;
+}
+
+.snapshot-limit-badge {
+    font-size: 0.8em;
+    color: var(--text-secondary);
+    font-weight: 400;
+    margin-left: 6px;
+    background: rgba(255, 255, 255, 0.1);
+    padding: 2px 6px;
+    border-radius: 4px;
+}
+
+.history-header-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 16px;
+    flex-wrap: wrap;
+    gap: 12px;
+}
+
+.history-header-row h3 {
+    margin: 0;
+}
+
+.history-controls {
+    display: flex;
+    gap: 10px;
+}
+
+.btn-secondary {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    color: var(--text-secondary);
+    padding: 6px 12px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-family: inherit;
+    font-size: 13px;
+    transition: all 0.2s;
+}
+
+.btn-secondary:hover {
+    background: rgba(255, 255, 255, 0.1);
+    color: #fff;
+    border-color: var(--text-secondary);
+}
+
+.btn-danger {
+    background: rgba(255, 77, 79, 0.1);
+    border: 1px solid rgba(255, 77, 79, 0.2);
+    color: var(--negative);
+    padding: 6px 12px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-family: inherit;
+    font-size: 13px;
+    transition: all 0.2s;
+}
+
+.btn-danger:hover {
+    background: rgba(255, 77, 79, 0.2);
+    border-color: var(--negative);
+}
+
+/* Ensure Save Button aligns content (icon + text) */
+.btn-snapshot {
+    display: flex;
+    align-items: center;
+}
+
+/* History Table Styles */
+.history-table-container {
+    max-height: 500px;
+    overflow-y: auto;
+    margin-top: 0;
+}
+
+.col-date {
+    color: var(--text-secondary);
+    font-size: 0.9em;
+    white-space: nowrap;
+}
+
+.col-label {
+    font-weight: 600;
+    color: var(--highlight-color);
+}
+
+.col-view {
+    color: var(--text-secondary);
+    font-size: 0.9em;
+    font-style: italic;
+}
+
+.col-stat {
+    font-family: 'Roboto Mono', monospace;
+}
+
+.col-action {
+    text-align: center;
+}
+
+.edit-btn-table {
+    background: rgba(247, 166, 0, 0.1);
+    border: 1px solid rgba(247, 166, 0, 0.2);
+    color: var(--accent-color);
+    padding: 4px 8px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 0.8em;
+    transition: all 0.2s;
+    margin-right: 6px;
+}
+
+.edit-btn-table:hover {
+    background: rgba(247, 166, 0, 0.2);
+    border-color: var(--accent-color);
+}
+
+.delete-btn-table {
+    background: rgba(255, 77, 79, 0.1);
+    border: 1px solid rgba(255, 77, 79, 0.2);
+    color: var(--negative);
+    padding: 4px 8px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 0.8em;
+    transition: all 0.2s;
+}
+
+.delete-btn-table:hover {
+    background: rgba(255, 77, 79, 0.2);
+    border-color: var(--negative);
 }
