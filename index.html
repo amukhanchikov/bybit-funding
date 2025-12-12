@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bybit Funding Rates</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Roboto+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="stylesheet" href="styles.css">
+</head>
+
+<body>
+    <div class="background-glow"></div>
+    <div class="container">
+        <header>
+            <div class="dashboard-header">
+                <h1 id="page-title">Funding Rates</h1>
+            </div>
+
+            <div id="stats-container" class="stats-grid">
+                <div class="stat-card">
+                    <span class="stat-label">Avg Yield</span>
+                    <span id="avg-funding" class="stat-value highlight">...</span>
+                </div>
+                <div class="stat-card">
+                    <span class="stat-label">Median Yield</span>
+                    <span id="median-funding" class="stat-value highlight">...</span>
+                </div>
+                <div class="stat-card">
+                    <span class="stat-label">Market Sentiment</span>
+                    <div class="sentiment-values">
+                        <span id="pos-count" class="stat-value positive-text">0</span>
+                        <span class="stat-sep">/</span>
+                        <span id="neg-count" class="stat-value negative-text">0</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="controls-bar">
+                <div class="limit-tabs">
+                    <span id="tab-all" class="limit-tab" onclick="setLimit('all')">All</span>
+                    <span class="tab-divider">|</span>
+                    <span id="tab-50" class="limit-tab" onclick="setLimit(50)">Top 50</span>
+                    <span class="tab-divider">|</span>
+                    <span id="tab-25" class="limit-tab active" onclick="setLimit(25)">Top 25</span>
+                    <span class="tab-divider">|</span>
+                    <span id="tab-10" class="limit-tab" onclick="setLimit(10)">Top 10</span>
+                    <span class="tab-divider">|</span>
+                    <span id="tab-5" class="limit-tab" onclick="setLimit(5)">Top 5</span>
+                </div>
+
+                <div class="search-container">
+                    <input type="text" id="search-input" placeholder="Search token..."
+                        oninput="handleSearch(this.value)">
+                </div>
+            </div>
+        </header>
+
+        <div class="table-container">
+            <table>
+                <thead>
+                    <tr>
+                        <th style="width: 200px;" class="sortable" onclick="sortTable('symbol')">Token <span
+                                id="sort-icon-symbol"></span></th>
+                        <th class="sortable" onclick="sortTable('fundingRate')">Funding Rate <span
+                                id="sort-icon-fundingRate"></span></th>
+                        <th class="sortable" onclick="sortTable('annualized')">Annualized <span
+                                id="sort-icon-annualized"></span></th>
+                        <th class="sortable" onclick="sortTable('turnover24h')">24h Volume <span
+                                id="sort-icon-turnover24h"></span></th>
+                    </tr>
+                </thead>
+                <tbody id="ticker-body">
+                    <!-- Rows will be inserted here dynamically -->
+                </tbody>
+            </table>
+        </div>
+    </div>
+    <script src="script.js"></script>
+</body>
+
+</html>
