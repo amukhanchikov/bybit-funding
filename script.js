@@ -329,7 +329,7 @@ window.saveSnapshot = function () {
 
     const snapshot = {
         id: Date.now(),
-        timestamp: new Date().toLocaleString(),
+        timestamp: new Date().toISOString(), // Use ISO for portability
         label: label || 'Snapshot',
         limit: dataLimit, // Save current limit (e.g., 25, 50, 'all')
         avg,
@@ -412,9 +412,14 @@ window.renderSnapshots = function () {
 
     tbody.innerHTML = snapshots.map(s => {
         const limitDisplay = s.limit === 'all' ? 'All' : (s.limit ? `Top ${s.limit}` : '-');
+
+        // Date formatting: attempt to parse ISO, fallback to string
+        const dateObj = new Date(s.timestamp);
+        const displayTime = isNaN(dateObj.getTime()) ? s.timestamp : dateObj.toLocaleString();
+
         return `
         <tr>
-            <td class="col-date">${s.timestamp}</td>
+            <td class="col-date">${displayTime}</td>
             <td class="col-label">${s.label}</td>
             <td class="col-view">${limitDisplay}</td>
             <td class="col-stat">${s.avg}</td>
