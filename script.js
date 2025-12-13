@@ -86,11 +86,11 @@ function renderTop50Stats(tickers) {
 
     if (avgFundingEl) {
         avgFundingEl.innerText = formatPercentage(avg);
-        avgFundingEl.className = avg >= 0 ? 'positive-text' : 'negative-text';
+        avgFundingEl.className = `stat-value highlight ${avg >= 0 ? 'positive-text' : 'negative-text'}`;
     }
     if (medianFundingEl) {
         medianFundingEl.innerText = formatPercentage(median);
-        medianFundingEl.className = median >= 0 ? 'positive-text' : 'negative-text';
+        medianFundingEl.className = `stat-value highlight ${median >= 0 ? 'positive-text' : 'negative-text'}`;
     }
 }
 
@@ -382,7 +382,14 @@ window.loadSnapshot = function (id) {
     // UI Updates
     const title = document.getElementById('page-title');
     if (title) {
-        title.innerHTML = `Snapshot View: <span style="color:var(--accent-color)">${snapshot.label}</span> <span style="font-size:0.6em;color:var(--text-secondary)">(${new Date(snapshot.timestamp).toLocaleString()})</span>`;
+        const safeLabel = snapshot.label
+            .replace(/&/g, "&amp;")
+            .replace(/</g, "&lt;")
+            .replace(/>/g, "&gt;")
+            .replace(/"/g, "&quot;")
+            .replace(/'/g, "&#039;");
+
+        title.innerHTML = `Snapshot View: <span style="color:var(--accent-color)">${safeLabel}</span> <span style="font-size:0.6em;color:var(--text-secondary)">(${new Date(snapshot.timestamp).toLocaleString()})</span>`;
     }
 
     // Show Exit Button
@@ -504,17 +511,29 @@ window.renderSnapshots = function () {
     if (currentIcon) currentIcon.innerText = historySortDirection === 'asc' ? ' ▲' : ' ▼';
 
 
+    // Sanitize label to prevent XSS
+    function escapeHtml(text) {
+        if (!text) return text;
+        return text
+            .replace(/&/g, "&amp;")
+            .replace(/</g, "&lt;")
+            .replace(/>/g, "&gt;")
+            .replace(/"/g, "&quot;")
+            .replace(/'/g, "&#039;");
+    }
+
     tbody.innerHTML = snapshots.map(s => {
         const limitDisplay = s.limit === 'all' ? 'All' : (s.limit ? `Top ${s.limit}` : '-');
 
         // Date formatting: attempt to parse ISO, fallback to string
         const dateObj = new Date(s.timestamp);
         const displayTime = isNaN(dateObj.getTime()) ? s.timestamp : dateObj.toLocaleString();
+        const safeLabel = escapeHtml(s.label);
 
         return `
         <tr>
             <td class="col-date">${displayTime}</td>
-            <td class="col-label">${s.label}</td>
+            <td class="col-label">${safeLabel}</td>
             <td class="col-view">${limitDisplay}</td>
             <td class="col-stat">${s.avg}</td>
             <td class="col-stat">${s.median}</td>
