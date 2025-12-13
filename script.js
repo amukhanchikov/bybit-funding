@@ -6,7 +6,6 @@ const avgFundingEl = document.getElementById('avg-funding');
 const medianFundingEl = document.getElementById('median-funding');
 const posCountEl = document.getElementById('pos-count');
 const negCountEl = document.getElementById('neg-count');
-const zeroCountEl = document.getElementById('zero-count');
 
 let allTickersCached = []; // Store all tickers to re-slice without refetching
 let currentTopList = [];
@@ -14,8 +13,11 @@ let sortColumn = 'turnover24h';
 let sortDirection = 'desc';
 let dataLimit = 25; // Default limit
 let isSearching = false;
+let isSnapshotMode = false;
+let refreshInterval = null;
 
 async function fetchData() {
+    if (isSnapshotMode) return;
     try {
         const response = await fetch(API_URL);
         const data = await response.json();
@@ -222,6 +224,10 @@ function applySort() {
                 valA = a.symbol;
                 valB = b.symbol;
                 return sortDirection === 'asc' ? valA.localeCompare(valB) : valB.localeCompare(valA);
+            case 'price':
+                valA = parseFloat(a.lastPrice);
+                valB = parseFloat(b.lastPrice);
+                break;
             case 'fundingRate':
                 valA = parseFloat(a.fundingRate);
                 valB = parseFloat(b.fundingRate);
@@ -247,7 +253,7 @@ function applySort() {
 
 function updateSortIcons() {
     // Reset all icons
-    ['symbol', 'fundingRate', 'annualized', 'turnover24h'].forEach(col => {
+    ['symbol', 'price', 'fundingRate', 'annualized', 'turnover24h'].forEach(col => {
         const icon = document.getElementById(`sort-icon-${col}`);
         if (icon) icon.innerText = '';
         // Also remove active class from th if we added one (optional style enhancement)
@@ -270,6 +276,7 @@ function renderTableRows(tickers) {
     tickers.forEach((ticker, index) => {
         // Strip USDT/USDC for cleaner display
         const symbol = ticker.symbol.replace(/USDT$|USDC$/, '');
+        const price = parseFloat(ticker.lastPrice);
         const fundingRate = parseFloat(ticker.fundingRate);
         const intervalHour = ticker.fundingIntervalHour || 8;
         const apr = calculateAnnualRate(fundingRate, intervalHour);
@@ -287,6 +294,7 @@ function renderTableRows(tickers) {
                 <span class="rank">#${index + 1}</span>
                 <span class="symbol-text">${symbol}</span>
             </td>
+            <td class="col-price">$${price.toFixed(price < 1 ? 4 : 2)}</td>
             <td class="col-rate ${colorClass}">
                 ${(fundingRate * 100).toFixed(4)}%
                 <span class="interval-badge">${intervalHour}h</span>
@@ -334,7 +342,8 @@ window.saveSnapshot = function () {
         limit: dataLimit, // Save current limit (e.g., 25, 50, 'all')
         avg,
         median,
-        sentiment: `${postCount} / ${negCount}`
+        sentiment: `${postCount} / ${negCount}`,
+        data: JSON.parse(JSON.stringify(allTickersCached)) // Deep copy of full market data
     };
 
     const snapshots = JSON.parse(localStorage.getItem('market_snapshots') || '[]');
@@ -349,6 +358,91 @@ window.deleteSnapshot = function (id) {
     snapshots = snapshots.filter(s => s.id !== id);
     localStorage.setItem('market_snapshots', JSON.stringify(snapshots));
     renderSnapshots();
+};
+
+
+
+window.loadSnapshot = function (id) {
+    const snapshots = JSON.parse(localStorage.getItem('market_snapshots') || '[]');
+    const snapshot = snapshots.find(s => s.id === id);
+    if (!snapshot) return;
+
+    if (!snapshot.data || !Array.isArray(snapshot.data)) {
+        alert('This snapshot does not contain market data (old format). Cannot load view.');
+        return;
+    }
+
+    // Enter Snapshot Mode
+    isSnapshotMode = true;
+    if (refreshInterval) clearInterval(refreshInterval);
+
+    // Update Data
+    allTickersCached = snapshot.data;
+
+    // UI Updates
+    const title = document.getElementById('page-title');
+    if (title) {
+        title.innerHTML = `Snapshot View: <span style="color:var(--accent-color)">${snapshot.label}</span> <span style="font-size:0.6em;color:var(--text-secondary)">(${new Date(snapshot.timestamp).toLocaleString()})</span>`;
+    }
+
+    // Show Exit Button
+    const exitBtn = document.getElementById('btn-exit-snapshot');
+    if (exitBtn) exitBtn.style.display = 'block';
+
+    // Hide Save Button (can't save a snapshot of a snapshot)
+    const saveBtn = document.getElementById('btn-save-snapshot');
+    if (saveBtn) saveBtn.style.display = 'none';
+
+    // Switch check: if we are in History tab, switch to Top 25 or saved limit
+    // But usually people want to see data. Let's switch to 'all' or default.
+    // The snapshot object has 'limit', maybe we respect that?
+    // Let's default to the snapshot's saved limit if valid, else 25.
+
+    let limitToRestore = snapshot.limit;
+    if (limitToRestore === 'history') limitToRestore = 25; // Don't stay in history
+    setLimit(limitToRestore || 25);
+
+    // Add visual indicator (banner) if not exists
+    let banner = document.getElementById('snapshot-banner');
+    if (!banner) {
+        banner = document.createElement('div');
+        banner.id = 'snapshot-banner';
+        banner.className = 'snapshot-mode-banner';
+        banner.innerText = 'You are viewing a historical snapshot. Data is not live.';
+        // Insert after header
+        const header = document.querySelector('header');
+        if (header) header.parentNode.insertBefore(banner, header.nextSibling);
+
+        const container = document.querySelector('.container');
+        if (container) container.insertBefore(banner, container.firstChild);
+    } else {
+        banner.style.display = 'block';
+    }
+};
+
+window.exitSnapshotMode = function () {
+    isSnapshotMode = false;
+
+    // Resume Fetch
+    fetchData(); // Fetch immediately
+    if (refreshInterval) clearInterval(refreshInterval);
+    refreshInterval = setInterval(fetchData, 30000);
+
+    // UI Restore
+    const title = document.getElementById('page-title');
+    if (title) title.innerText = 'Funding Rates';
+
+    const exitBtn = document.getElementById('btn-exit-snapshot');
+    if (exitBtn) exitBtn.style.display = 'none';
+
+    const saveBtn = document.getElementById('btn-save-snapshot');
+    if (saveBtn) saveBtn.style.display = 'block'; // Should be block if we are not in history tab.
+
+    const banner = document.getElementById('snapshot-banner');
+    if (banner) banner.style.display = 'none';
+
+    // Default to Top 25
+    setLimit(25);
 };
 
 window.renderSnapshots = function () {
@@ -426,6 +520,7 @@ window.renderSnapshots = function () {
             <td class="col-stat">${s.median}</td>
             <td class="col-stat">${s.sentiment}</td>
             <td class="col-action">
+                <button class="view-btn-table" onclick="loadSnapshot(${s.id})">View</button>
                 <button class="edit-btn-table" onclick="editSnapshotLabel(${s.id})">Edit</button>
                 <button class="delete-btn-table" onclick="deleteSnapshot(${s.id})">Delete</button>
             </td>
@@ -540,4 +635,4 @@ if (savedLimit) {
 }
 
 fetchData();
-setInterval(fetchData, 30000);
+refreshInterval = setInterval(fetchData, 30000);

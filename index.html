@@ -67,6 +67,10 @@
                     Snapshot
                 </button>
 
+                <button id="btn-exit-snapshot" class="btn-exit-snapshot" onclick="exitSnapshotMode()">
+                    Exit Snapshot
+                </button>
+
                 <div id="search-container-wrapper" class="search-container">
                     <input type="text" id="search-input" placeholder="Search token..."
                         oninput="handleSearch(this.value)">
@@ -80,6 +84,7 @@
                     <tr>
                         <th style="width: 200px;" class="sortable" onclick="sortTable('symbol')">Token <span
                                 id="sort-icon-symbol"></span></th>
+                        <th class="sortable" onclick="sortTable('price')">Price <span id="sort-icon-price"></span></th>
                         <th class="sortable" onclick="sortTable('fundingRate')">Funding Rate <span
                                 id="sort-icon-fundingRate"></span></th>
                         <th class="sortable" onclick="sortTable('annualized')">Annualized <span
